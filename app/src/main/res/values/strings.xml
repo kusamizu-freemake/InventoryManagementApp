@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">InventoryManagementApp</string>
+
+    <!-- 在庫入力エリア -->
+    <string name="label_quantity">数量</string>
+    <string name="label_time">時刻</string>
+    <string name="label_comment">コメント</string>
+
+    <!-- ボタン -->
+    <string name="button_add">追加</string>
+    <string name="button_plus">+</string>
+    <string name="button_minus">-</string>
+
+    <!-- エリア -->
+    <string name="area_inventory_list">在庫一覧エリア(中央)</string>
+    <string name="area_footer">フッターエリア(下部)</string>
 </resources>
