@@ -31,6 +31,8 @@ import java.time.LocalTime
 import com.example.inventorymanagementapp.ui.theme.InventoryManagementAppTheme
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.res.stringResource
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,6 +97,14 @@ fun InputArea(modifier: Modifier) {
 
     // 時刻の状態
     var currentTimeText by remember { mutableStateOf(getCurrentTimeText()) }
+
+    // 1秒ごとに時刻を更新
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)  // 1秒待つ
+            currentTimeText = getCurrentTimeText()
+        }
+    }
 
     Column(
         modifier = modifier
