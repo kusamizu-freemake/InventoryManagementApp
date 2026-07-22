@@ -124,12 +124,20 @@ fun InputArea(modifier: Modifier) {
                     Text(quantity.toString())
                 }
 
-                Button(onClick = {}) {
-                    Text(stringResource(R.string.button_plus))
+                // −ボタン：数量が0より大きい場合のみ減少
+                Button(onClick = {
+                    if (quantity > 0) {
+                        quantity--
+                    }
+                }) {
+                    Text(stringResource(R.string.button_minus))
                 }
 
-                Button(onClick = {}) {
-                    Text(stringResource(R.string.button_minus))
+                // ＋ボタン：数量を増加
+                Button(onClick = {
+                    quantity++
+                }) {
+                    Text(stringResource(R.string.button_plus))
                 }
             }
         }
