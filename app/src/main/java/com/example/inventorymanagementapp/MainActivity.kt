@@ -31,6 +31,16 @@ import java.time.LocalTime
 import com.example.inventorymanagementapp.ui.theme.InventoryManagementAppTheme
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.res.stringResource
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+
+// 在庫データ
+data class InventoryItem(
+    val time: String, // 時刻
+    val quantity: Int, // 数量
+    val comment: String, // コメント
+    val isChecked: Boolean = false // チェック状態
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,6 +106,14 @@ fun InputArea(modifier: Modifier) {
     // 時刻の状態
     var currentTimeText by remember { mutableStateOf(getCurrentTimeText()) }
 
+    // 1秒ごとに時刻を更新
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)  // 1秒待つ
+            currentTimeText = getCurrentTimeText()
+        }
+    }
+
     Column(
         modifier = modifier
             .background(Color.LightGray) // debug用
@@ -124,12 +142,20 @@ fun InputArea(modifier: Modifier) {
                     Text(quantity.toString())
                 }
 
-                Button(onClick = {}) {
-                    Text(stringResource(R.string.button_plus))
+                // −ボタン：数量が0より大きい場合のみ減少
+                Button(onClick = {
+                    if (quantity > 0) {
+                        quantity--
+                    }
+                }) {
+                    Text(stringResource(R.string.button_minus))
                 }
 
-                Button(onClick = {}) {
-                    Text(stringResource(R.string.button_minus))
+                // ＋ボタン：数量を増加
+                Button(onClick = {
+                    quantity++
+                }) {
+                    Text(stringResource(R.string.button_plus))
                 }
             }
         }
@@ -165,7 +191,9 @@ fun InputArea(modifier: Modifier) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            Button(onClick = {}
+            Button(onClick = {
+                // 一覧表示
+            }
             ) {
                 Text(stringResource(R.string.button_add))
             }
