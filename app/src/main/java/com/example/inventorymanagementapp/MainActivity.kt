@@ -34,6 +34,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 
+// 在庫データ
+data class InventoryItem(
+    val time: String, // 時刻
+    val quantity: Int, // 数量
+    val comment: String, // コメント
+    val isChecked: Boolean = false // チェック状態
+)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -183,7 +191,9 @@ fun InputArea(modifier: Modifier) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            Button(onClick = {}
+            Button(onClick = {
+                // 一覧表示
+            }
             ) {
                 Text(stringResource(R.string.button_add))
             }
