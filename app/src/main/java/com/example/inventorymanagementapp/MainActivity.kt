@@ -103,17 +103,6 @@ fun InputArea(modifier: Modifier) {
     // コメントの状態
     var comment by remember { mutableStateOf("") }
 
-    // 時刻の状態
-    var currentTimeText by remember { mutableStateOf(getCurrentTimeText()) }
-
-    // 1秒ごとに時刻を更新
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(1000)  // 1秒待つ
-            currentTimeText = getCurrentTimeText()
-        }
-    }
-
     Column(
         modifier = modifier
             .background(Color.LightGray) // debug用
@@ -162,14 +151,8 @@ fun InputArea(modifier: Modifier) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-        // 時刻の行
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(stringResource(R.string.label_time))
-            Text(currentTimeText) // 時刻（"hh:mm:ss"形式）
-        }
+        // 時刻表示
+        CurrentTimer()
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
@@ -192,12 +175,41 @@ fun InputArea(modifier: Modifier) {
             horizontalArrangement = Arrangement.Center
         ) {
             Button(onClick = {
+                //
+                val newItem = InventoryItem(
+                    time = getCurrentTimeText(), // 時刻取得
+                    quantity = quantity,
+                    comment = comment,
+                    isChecked = false
+                )
                 // 一覧表示
             }
             ) {
                 Text(stringResource(R.string.button_add))
             }
         }
+    }
+}
+
+// 時刻表示（毎秒更新）
+@Composable
+fun CurrentTimer() {
+    var currentTimeText by remember { mutableStateOf(getCurrentTimeText()) }
+
+    // 表示用の時刻を1秒ごとに更新
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)  // 1秒待つ
+            currentTimeText = getCurrentTimeText()
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(stringResource(R.string.label_time))
+        Text(currentTimeText) // 時刻（"hh:mm:ss"形式）
     }
 }
 
@@ -228,7 +240,6 @@ fun FooterArea(modifier: Modifier) {
         Text(stringResource(R.string.area_footer))
     }
 }
-
 
 // 現在時刻を "hh:mm:ss" 形式で文字列にして返す関数
 private fun getCurrentTimeText(): String {
