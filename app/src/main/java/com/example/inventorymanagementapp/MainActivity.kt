@@ -27,6 +27,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.mutableStateListOf
 import java.time.LocalTime
 import com.example.inventorymanagementapp.ui.theme.InventoryManagementAppTheme
 import java.time.format.DateTimeFormatter
@@ -62,6 +65,9 @@ class MainActivity : ComponentActivity() {
 // 在庫入力エリア（数量表示、変更ボタン、現在時刻表示、コメント入力、追加ボタン）
 @Composable
 fun InventoryEntryArea (modifier: Modifier = Modifier) {
+
+    val inventoryList = remember { mutableStateListOf<InventoryItem>() }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -73,7 +79,8 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(2.0f)
-                .padding(16.dp)
+                .padding(16.dp),
+            onAddItem = { newItem -> inventoryList.add(newItem) } // 追加ボタンが押されたら、その内容をリストへ追加する
         )
 
         // 在庫一覧エリア:中央に配置
@@ -81,7 +88,8 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1.5f)
-                .padding(16.dp)
+                .padding(16.dp),
+            items = inventoryList
         )
 
         // フッターエリア:下部に配置
@@ -97,7 +105,10 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
 // 各エリア処理事項
 // 在庫入力エリア(上部)
 @Composable
-fun InputArea(modifier: Modifier) {
+fun InputArea(
+    modifier: Modifier,
+    onAddItem: (InventoryItem) -> Unit // 追加ボタンが押されたことを親に伝えるための連絡係
+) {
     // 数量の状態
     var quantity by remember { mutableStateOf(0) }
     // コメントの状態
@@ -182,7 +193,8 @@ fun InputArea(modifier: Modifier) {
                     comment = comment,
                     isChecked = false
                 )
-                // 一覧表示
+                // 作ったデータを親(InventoryEntryArea)へ渡して、一覧に追加してもらう
+                onAddItem(newItem)
             }
             ) {
                 Text(stringResource(R.string.button_add))
@@ -215,15 +227,47 @@ fun CurrentTimer() {
 
 // 在庫一覧エリア(中央)
 @Composable
-fun ListArea(modifier: Modifier) {
+fun ListArea(modifier: Modifier, items: List<InventoryItem>) {
     //
     Box(
         modifier = modifier
             .background(Color.White) // debug用
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+            .padding(16.dp)
     ) {
-        Text(stringResource(R.string.area_inventory_list))
+        if (items.isEmpty()) {
+            // まだ何も追加されていない時の表示
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(stringResource(R.string.message_empty_list))
+            }
+        } else {
+            // LazyColumn: 画面に入りきらない分は自動でスクロールできるリスト
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // items: リストの中身を1件ずつ取り出して、行のデザインを適用する
+                items(items) { item -> InventoryRow(item) }
+            }
+        }
+    }
+}
+
+// 一覧の1行分のデザイン
+@Composable
+fun InventoryRow(item: InventoryItem) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Green) // debug用
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(item.time)
+        Text(item.quantity.toString())
+        Text(item.comment)
     }
 }
 
