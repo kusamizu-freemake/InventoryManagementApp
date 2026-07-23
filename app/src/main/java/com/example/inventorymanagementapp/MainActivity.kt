@@ -28,8 +28,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import java.time.LocalTime
 import com.example.inventorymanagementapp.ui.theme.InventoryManagementAppTheme
 import java.time.format.DateTimeFormatter
@@ -89,7 +91,9 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .weight(1.5f)
                 .padding(16.dp),
-            items = inventoryList
+            items = inventoryList,
+            // チェックボックスが押されたら、toggleChecked()で該当データのチェック状態を反転させる
+            onToggleCheck = { index -> toggleChecked(inventoryList, index) }
         )
 
         // フッターエリア:下部に配置
@@ -227,7 +231,11 @@ fun CurrentTimer() {
 
 // 在庫一覧エリア(中央)
 @Composable
-fun ListArea(modifier: Modifier, items: List<InventoryItem>) {
+fun ListArea(
+    modifier: Modifier,
+    items: List<InventoryItem>,
+    onToggleCheck: (Int) -> Unit
+) {
     //
     Box(
         modifier = modifier
@@ -248,8 +256,17 @@ fun ListArea(modifier: Modifier, items: List<InventoryItem>) {
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // items: リストの中身を1件ずつ取り出して、行のデザインを適用する
-                items(items) { item -> InventoryRow(item) }
+                // itemsIndexed: 中身を1件ずつ、その「何番目か(index)」と一緒に取り出す
+                // チェックボックスがどのデータのものかを親に伝えるためにindexが必要
+                itemsIndexed(items) { index, item ->
+                    InventoryRow(
+                        item = item,
+                        onCheckedChange = { onToggleCheck(index) },
+                        onDeleteClick = {
+                            // 「この行だけ削除する」処理を後で実装予定
+                        }
+                    )
+                }
             }
         }
     }
@@ -257,17 +274,34 @@ fun ListArea(modifier: Modifier, items: List<InventoryItem>) {
 
 // 一覧の1行分のデザイン
 @Composable
-fun InventoryRow(item: InventoryItem) {
+fun InventoryRow(
+    item: InventoryItem,
+    onCheckedChange: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Green) // debug用
             .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        // チェックボックス：押すとisCheckedが反転する
+        Checkbox(
+            checked = item.isChecked,
+            onCheckedChange = { onCheckedChange() }
+        )
+
         Text(item.time)
         Text(item.quantity.toString())
         Text(item.comment)
+
+
+        // 削除ボタン：配置だけして、処理は後で実装予定
+        Button(onClick = onDeleteClick) {
+            Text(stringResource(R.string.button_delete))
+        }
     }
 }
 
@@ -290,6 +324,18 @@ private fun getCurrentTimeText(): String {
     val now = LocalTime.now()
     val formater = DateTimeFormatter.ofPattern("HH:mm:ss")
     return now.format(formater)
+}
+
+// 一覧の中の、指定した位置(index)のデータだけチェック状態を反転させる関数
+private fun toggleChecked(list: SnapshotStateList<InventoryItem>, index: Int) {
+    // 対象のデータを取り出す
+    val item = list[index]
+
+    // チェック状態を反転させたコピーを作る
+    val newItem = item.copy(isChecked = !item.isChecked)
+
+    // 一覧に入れ替える
+    list[index] = newItem
 }
 
 @Preview(showBackground = true)
