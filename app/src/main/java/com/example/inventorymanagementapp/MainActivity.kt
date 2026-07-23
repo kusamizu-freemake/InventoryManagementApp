@@ -261,6 +261,7 @@ fun ListArea(
                 itemsIndexed(items) { index, item ->
                     InventoryRow(
                         item = item,
+                        index = index, // 背景色の切り替えに使う行番号
                         onCheckedChange = { onToggleCheck(index) },
                         onDeleteClick = {
                             // 「この行だけ削除する」処理を後で実装予定
@@ -276,13 +277,21 @@ fun ListArea(
 @Composable
 fun InventoryRow(
     item: InventoryItem,
+    index: Int, // 背景色の判定に使う
     onCheckedChange: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    // 行背景色を決める
+    val rowColor = if (index % 2 == 0) {
+        Color(0xFF82B1FF) // Color.Blueは見えづらいので不採用
+    } else {
+        Color.White
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Green) // debug用
+            .background(rowColor)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
