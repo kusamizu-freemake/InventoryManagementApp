@@ -10,8 +10,11 @@
     <string name="button_add">追加</string>
     <string name="button_plus">+</string>
     <string name="button_minus">-</string>
+    <string name="button_delete">削除</string>
 
-    <!-- エリア -->
-    <string name="area_inventory_list">在庫一覧エリア(中央)</string>
+    <!-- 一覧エリア -->
+    <string name="message_empty_list">登録されたデータがありません</string>
+
+    <!-- フッターエリア -->
     <string name="area_footer">フッターエリア(下部)</string>
 </resources>

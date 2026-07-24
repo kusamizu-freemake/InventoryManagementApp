@@ -27,6 +27,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.Checkbox
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import java.time.LocalTime
 import com.example.inventorymanagementapp.ui.theme.InventoryManagementAppTheme
 import java.time.format.DateTimeFormatter
@@ -62,6 +67,9 @@ class MainActivity : ComponentActivity() {
 // 在庫入力エリア（数量表示、変更ボタン、現在時刻表示、コメント入力、追加ボタン）
 @Composable
 fun InventoryEntryArea (modifier: Modifier = Modifier) {
+
+    val inventoryList = remember { mutableStateListOf<InventoryItem>() }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -73,7 +81,8 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(2.0f)
-                .padding(16.dp)
+                .padding(16.dp),
+            onAddItem = { newItem -> inventoryList.add(newItem) } // 追加ボタンが押されたら、その内容をリストへ追加する
         )
 
         // 在庫一覧エリア:中央に配置
@@ -81,7 +90,10 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1.5f)
-                .padding(16.dp)
+                .padding(16.dp),
+            items = inventoryList,
+            // チェックボックスが押されたら、toggleChecked()で該当データのチェック状態を反転させる
+            onToggleCheck = { index -> toggleChecked(inventoryList, index) }
         )
 
         // フッターエリア:下部に配置
@@ -97,22 +109,14 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
 // 各エリア処理事項
 // 在庫入力エリア(上部)
 @Composable
-fun InputArea(modifier: Modifier) {
+fun InputArea(
+    modifier: Modifier,
+    onAddItem: (InventoryItem) -> Unit // 追加ボタンが押されたことを親に伝えるための連絡係
+) {
     // 数量の状態
     var quantity by remember { mutableStateOf(0) }
     // コメントの状態
     var comment by remember { mutableStateOf("") }
-
-    // 時刻の状態
-    var currentTimeText by remember { mutableStateOf(getCurrentTimeText()) }
-
-    // 1秒ごとに時刻を更新
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(1000)  // 1秒待つ
-            currentTimeText = getCurrentTimeText()
-        }
-    }
 
     Column(
         modifier = modifier
@@ -162,14 +166,8 @@ fun InputArea(modifier: Modifier) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-        // 時刻の行
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(stringResource(R.string.label_time))
-            Text(currentTimeText) // 時刻（"hh:mm:ss"形式）
-        }
+        // 時刻表示
+        CurrentTimer()
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
@@ -192,7 +190,15 @@ fun InputArea(modifier: Modifier) {
             horizontalArrangement = Arrangement.Center
         ) {
             Button(onClick = {
-                // 一覧表示
+                //
+                val newItem = InventoryItem(
+                    time = getCurrentTimeText(), // 時刻取得
+                    quantity = quantity,
+                    comment = comment,
+                    isChecked = false
+                )
+                // 作ったデータを親(InventoryEntryArea)へ渡して、一覧に追加してもらう
+                onAddItem(newItem)
             }
             ) {
                 Text(stringResource(R.string.button_add))
@@ -201,17 +207,110 @@ fun InputArea(modifier: Modifier) {
     }
 }
 
+// 時刻表示（毎秒更新）
+@Composable
+fun CurrentTimer() {
+    var currentTimeText by remember { mutableStateOf(getCurrentTimeText()) }
+
+    // 表示用の時刻を1秒ごとに更新
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)  // 1秒待つ
+            currentTimeText = getCurrentTimeText()
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(stringResource(R.string.label_time))
+        Text(currentTimeText) // 時刻（"hh:mm:ss"形式）
+    }
+}
+
 // 在庫一覧エリア(中央)
 @Composable
-fun ListArea(modifier: Modifier) {
+fun ListArea(
+    modifier: Modifier,
+    items: List<InventoryItem>,
+    onToggleCheck: (Int) -> Unit
+) {
     //
     Box(
         modifier = modifier
             .background(Color.White) // debug用
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+            .padding(16.dp)
     ) {
-        Text(stringResource(R.string.area_inventory_list))
+        if (items.isEmpty()) {
+            // まだ何も追加されていない時の表示
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(stringResource(R.string.message_empty_list))
+            }
+        } else {
+            // LazyColumn: 画面に入りきらない分は自動でスクロールできるリスト
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // itemsIndexed: 中身を1件ずつ、その「何番目か(index)」と一緒に取り出す
+                // チェックボックスがどのデータのものかを親に伝えるためにindexが必要
+                itemsIndexed(items) { index, item ->
+                    InventoryRow(
+                        item = item,
+                        index = index, // 背景色の切り替えに使う行番号
+                        onCheckedChange = { onToggleCheck(index) },
+                        onDeleteClick = {
+                            // 「この行だけ削除する」処理を後で実装予定
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+// 一覧の1行分のデザイン
+@Composable
+fun InventoryRow(
+    item: InventoryItem,
+    index: Int, // 背景色の判定に使う
+    onCheckedChange: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    // 行背景色を決める
+    val rowColor = if (index % 2 == 0) {
+        Color(0xFF82B1FF) // Color.Blueは見えづらいので不採用
+    } else {
+        Color.White
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(rowColor)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        // チェックボックス：押すとisCheckedが反転する
+        Checkbox(
+            checked = item.isChecked,
+            onCheckedChange = { onCheckedChange() }
+        )
+
+        Text(item.time)
+        Text(item.quantity.toString())
+        Text(item.comment)
+
+
+        // 削除ボタン：配置だけして、処理は後で実装予定
+        Button(onClick = onDeleteClick) {
+            Text(stringResource(R.string.button_delete))
+        }
     }
 }
 
@@ -229,12 +328,23 @@ fun FooterArea(modifier: Modifier) {
     }
 }
 
-
 // 現在時刻を "hh:mm:ss" 形式で文字列にして返す関数
 private fun getCurrentTimeText(): String {
     val now = LocalTime.now()
     val formater = DateTimeFormatter.ofPattern("HH:mm:ss")
     return now.format(formater)
+}
+
+// 一覧の中の、指定した位置(index)のデータだけチェック状態を反転させる関数
+private fun toggleChecked(list: SnapshotStateList<InventoryItem>, index: Int) {
+    // 対象のデータを取り出す
+    val item = list[index]
+
+    // チェック状態を反転させたコピーを作る
+    val newItem = item.copy(isChecked = !item.isChecked)
+
+    // 一覧に入れ替える
+    list[index] = newItem
 }
 
 @Preview(showBackground = true)
