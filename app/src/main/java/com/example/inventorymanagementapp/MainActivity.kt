@@ -4,7 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -93,7 +96,9 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
                 .padding(16.dp),
             items = inventoryList,
             // チェックボックスが押されたら、toggleChecked()で該当データのチェック状態を反転させる
-            onToggleCheck = { index -> toggleChecked(inventoryList, index) }
+            onToggleCheck = { index -> toggleChecked(inventoryList, index) },
+            // 削除ボタンが押されたら、該当データを一覧から取り除く
+            onDeleteItem = { index -> inventoryList.removeAt(index) }
         )
 
         // フッターエリア:下部に配置
@@ -234,7 +239,8 @@ fun CurrentTimer() {
 fun ListArea(
     modifier: Modifier,
     items: List<InventoryItem>,
-    onToggleCheck: (Int) -> Unit
+    onToggleCheck: (Int) -> Unit,
+    onDeleteItem: (Int) -> Unit
 ) {
     //
     Box(
@@ -263,9 +269,7 @@ fun ListArea(
                         item = item,
                         index = index, // 背景色の切り替えに使う行番号
                         onCheckedChange = { onToggleCheck(index) },
-                        onDeleteClick = {
-                            // 「この行だけ削除する」処理を後で実装予定
-                        }
+                        onDeleteClick = { onDeleteItem(index) }
                     )
                 }
             }
@@ -282,16 +286,25 @@ fun InventoryRow(
     onDeleteClick: () -> Unit
 ) {
     // 行背景色を決める
-    val rowColor = if (index % 2 == 0) {
+    val rowColor = if (item.isChecked) {
+        Color.Green // チェックが入っていたら緑
+    } else if (index % 2 == 0) {
         Color(0xFF82B1FF) // Color.Blueは見えづらいので不採用
     } else {
         Color.White
     }
 
+    // Toastを表示するために必要な「今の画面の情報」を取得しておく
+    val context = LocalContext.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(rowColor)
+            // 行のどこかがタップされたら、処理が実行
+            .clickable {
+                Toast.makeText(context, R.string.message_row_tapped, Toast.LENGTH_SHORT).show()
+            }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -306,8 +319,7 @@ fun InventoryRow(
         Text(item.quantity.toString())
         Text(item.comment)
 
-
-        // 削除ボタン：配置だけして、処理は後で実装予定
+        // 削除ボタン：押されたらonDeleteClick経由で親に該当行のindexを伝える
         Button(onClick = onDeleteClick) {
             Text(stringResource(R.string.button_delete))
         }

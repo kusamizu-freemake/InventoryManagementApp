@@ -14,6 +14,7 @@
 
     <!-- 一覧エリア -->
     <string name="message_empty_list">登録されたデータがありません</string>
+    <string name="message_row_tapped">押されました</string>
 
     <!-- フッターエリア -->
     <string name="area_footer">フッターエリア(下部)</string>
