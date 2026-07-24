@@ -282,7 +282,9 @@ fun InventoryRow(
     onDeleteClick: () -> Unit
 ) {
     // 行背景色を決める
-    val rowColor = if (index % 2 == 0) {
+    val rowColor = if (item.isChecked) {
+        Color.Green // チェックが入っていたら緑(0xFF4CAF50)
+    } else if (index % 2 == 0) {
         Color(0xFF82B1FF) // Color.Blueは見えづらいので不採用
     } else {
         Color.White
