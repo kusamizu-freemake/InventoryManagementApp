@@ -4,7 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -291,10 +294,17 @@ fun InventoryRow(
         Color.White
     }
 
+    // Toastを表示するために必要な「今の画面の情報」を取得しておく
+    val context = LocalContext.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(rowColor)
+            // 行のどこかがタップされたら、処理が実行
+            .clickable {
+                Toast.makeText(context, R.string.message_row_tapped, Toast.LENGTH_SHORT).show()
+            }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
