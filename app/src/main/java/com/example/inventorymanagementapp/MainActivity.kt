@@ -106,7 +106,15 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(0.5f)
-                .padding(16.dp)
+                .padding(16.dp),
+            // TODO:クリアボタンが押されたときの処理
+            onClickClear = {
+                inventoryList.clear() // 一覧を空にする
+            },
+            // 合計数量ボタンが押されたときの処理
+            onClickTotal = {
+                // TODO:チェックされている行の数量を合計して、ダイアログで表示する処理
+            }
         )
     }
 }
@@ -301,7 +309,7 @@ fun InventoryRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(rowColor)
-            // 行のどこかがタップされたら、処理が実行
+            // TODO: 行がタップされたら詳細画面に遷移
             .clickable {
                 Toast.makeText(context, R.string.message_row_tapped, Toast.LENGTH_SHORT).show()
             }
@@ -328,15 +336,28 @@ fun InventoryRow(
 
 // フッターエリア(下部)
 @Composable
-fun FooterArea(modifier: Modifier) {
-    //
-    Box(
+fun FooterArea(
+    modifier: Modifier,
+    onClickClear: () -> Unit,
+    onClickTotal: () -> Unit
+) {
+
+    Row(
         modifier = modifier
             .background(Color.Yellow) // debug用
             .padding(16.dp),
-        contentAlignment = Alignment.Center
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(stringResource(R.string.area_footer))
+        // クリアボタン
+        Button(onClick = onClickClear) {
+            Text(stringResource(R.string.button_clear))
+        }
+
+        // 合計数量ボタン
+        Button(onClick = onClickTotal) {
+            Text(stringResource(R.string.button_total))
+        }
     }
 }
 
