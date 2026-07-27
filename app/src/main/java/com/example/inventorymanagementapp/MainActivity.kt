@@ -109,7 +109,7 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
                 .padding(16.dp),
             // TODO:クリアボタンが押されたときの処理
             onClickClear = {
-                // TODO:一覧を全部削除する処理
+                inventoryList.clear() // 一覧を空にする
             },
             // 合計数量ボタンが押されたときの処理
             onClickTotal = {
