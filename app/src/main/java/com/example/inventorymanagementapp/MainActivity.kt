@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,6 +74,11 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
 
     val inventoryList = remember { mutableStateListOf<InventoryItem>() }
 
+    // ダイアログを表示するかどうかのフラグ
+    var showTotalDialog by remember { mutableStateOf(false) }
+    // 計算した合計数量を覚えておく変数
+    var totalQuantity by remember { mutableStateOf(0) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -107,14 +113,28 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .weight(0.5f)
                 .padding(16.dp),
-            // TODO:クリアボタンが押されたときの処理
+            // クリアボタンが押されたときの処理
             onClickClear = {
                 inventoryList.clear() // 一覧を空にする
             },
             // 合計数量ボタンが押されたときの処理
             onClickTotal = {
-                // TODO:チェックされている行の数量を合計して、ダイアログで表示する処理
+                // チェックされている行の数量を合計して、ダイアログで表示する処理
+                totalQuantity = inventoryList
+                    .filter { it.isChecked }
+                    .sumOf { it.quantity }
+
+                // ダイアログを表示状態にする
+                showTotalDialog = true
             }
+        )
+    }
+
+    // showTotalDialogがtrueの間だけ、このダイアログが画面に表示される
+    if (showTotalDialog) {
+        TotalQuantityDialog(
+            total = totalQuantity,
+            onDismiss = { showTotalDialog = false }
         )
     }
 }
@@ -203,7 +223,6 @@ fun InputArea(
             horizontalArrangement = Arrangement.Center
         ) {
             Button(onClick = {
-                //
                 val newItem = InventoryItem(
                     time = getCurrentTimeText(), // 時刻取得
                     quantity = quantity,
@@ -212,6 +231,11 @@ fun InputArea(
                 )
                 // 作ったデータを親(InventoryEntryArea)へ渡して、一覧に追加してもらう
                 onAddItem(newItem)
+
+                // 入力後の初期化
+                // 時刻はCurrentTimerが1秒ごとに自動更新のため、不要
+                quantity = 0   // 数量表示を0へ戻す
+                comment = ""   // コメント欄を空にする
             }
             ) {
                 Text(stringResource(R.string.button_add))
@@ -309,7 +333,7 @@ fun InventoryRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(rowColor)
-            // TODO: 行がタップされたら詳細画面に遷移
+            // 行がタップされたら詳細画面に遷移
             .clickable {
                 Toast.makeText(context, R.string.message_row_tapped, Toast.LENGTH_SHORT).show()
             }
@@ -359,6 +383,28 @@ fun FooterArea(
             Text(stringResource(R.string.button_total))
         }
     }
+}
+
+// 合計数量を表示するダイアログ
+@Composable
+fun TotalQuantityDialog(
+    total: Int,
+    onDismiss: () -> Unit // 閉じるときに呼ばれる処理
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss, // ダイアログの外側をタップした時などに閉じる
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text(stringResource(R.string.button_close))
+            }
+        },
+        title = {
+            Text(stringResource(R.string.dialog_title_total))
+        },
+        text = {
+            Text(stringResource(R.string.format_total_quantity, total))
+        }
+    )
 }
 
 // 現在時刻を "hh:mm:ss" 形式で文字列にして返す関数
