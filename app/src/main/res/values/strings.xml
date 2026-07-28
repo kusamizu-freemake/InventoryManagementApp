@@ -20,4 +20,9 @@
 
     <!-- フッターエリア -->
     <string name="area_footer">フッターエリア(下部)</string>
+
+    <!-- 合計数量ダイアログ -->
+    <string name="dialog_title_total">合計数量</string>
+    <string name="format_total_quantity">%1$d個</string>
+    <string name="button_close">閉じる</string>
 </resources>
