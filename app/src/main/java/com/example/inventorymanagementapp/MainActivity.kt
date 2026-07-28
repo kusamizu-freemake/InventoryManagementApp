@@ -223,7 +223,6 @@ fun InputArea(
             horizontalArrangement = Arrangement.Center
         ) {
             Button(onClick = {
-                //
                 val newItem = InventoryItem(
                     time = getCurrentTimeText(), // 時刻取得
                     quantity = quantity,
@@ -232,6 +231,11 @@ fun InputArea(
                 )
                 // 作ったデータを親(InventoryEntryArea)へ渡して、一覧に追加してもらう
                 onAddItem(newItem)
+
+                // 入力後の初期化
+                // 時刻はCurrentTimerが1秒ごとに自動更新のため、不要
+                quantity = 0   // 数量表示を0へ戻す
+                comment = ""   // コメント欄を空にする
             }
             ) {
                 Text(stringResource(R.string.button_add))
@@ -329,7 +333,7 @@ fun InventoryRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(rowColor)
-            // TODO: 行がタップされたら詳細画面に遷移
+            // 行がタップされたら詳細画面に遷移
             .clickable {
                 Toast.makeText(context, R.string.message_row_tapped, Toast.LENGTH_SHORT).show()
             }
