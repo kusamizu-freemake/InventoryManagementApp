@@ -426,10 +426,32 @@ private fun toggleChecked(list: SnapshotStateList<InventoryItem>, index: Int) {
     list[index] = newItem
 }
 
+// 詳細画面
+@Composable
+fun DetailScreen(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // TODO:仮タイトル表示。ここに時刻・数量・コメントが今後並ぶ予定
+        Text("詳細画面")
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun InventoryScreenPreview() {
     InventoryManagementAppTheme {
         InventoryEntryArea()
+    }
+}
+
+// 詳細画面側のプレビュー
+@Preview(showBackground = true)
+@Composable
+fun DetailScreenPreview() {
+    InventoryManagementAppTheme {
+        DetailScreen()
     }
 }
