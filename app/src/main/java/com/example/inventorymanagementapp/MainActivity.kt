@@ -4,10 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +40,9 @@ import java.time.format.DateTimeFormatter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 // 在庫データ
 data class InventoryItem(
@@ -58,7 +59,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             InventoryManagementAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    InventoryEntryArea(
+                    // 画面遷移をまとめて管理するAppNavHostを呼び出す
+                    AppNavHost(
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -67,10 +69,41 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// 画面遷移をまとめて管理する場所
+@Composable
+fun AppNavHost(modifier: Modifier = Modifier) {
+    // navController: 今どの画面にいるか、次にどこへ移動するかを管理する案内係
+    val navController = rememberNavController()
+
+    // NavHost: 住所(文字列)と画面(Composable)を紐づけて登録する箱
+    // startDestination: アプリを開いたときに最初に表示する住所
+    NavHost(
+        navController = navController,
+        startDestination = "list",
+        modifier = modifier
+    ) {
+        // "list"という住所には一覧画面を表示する
+        composable("list") {
+            InventoryEntryArea(
+                // 行がタップされたら、"detail"という住所へ移動する
+                onItemClick = { navController.navigate("detail") }
+            )
+        }
+
+        // "detail"という住所には詳細画面を表示する
+        composable("detail") {
+            DetailScreen()
+        }
+    }
+}
+
 // 画面作成
 // 在庫入力エリア（数量表示、変更ボタン、現在時刻表示、コメント入力、追加ボタン）
 @Composable
-fun InventoryEntryArea (modifier: Modifier = Modifier) {
+fun InventoryEntryArea (
+    modifier: Modifier = Modifier,
+    onItemClick: () -> Unit
+) {
 
     val inventoryList = remember { mutableStateListOf<InventoryItem>() }
 
@@ -104,7 +137,8 @@ fun InventoryEntryArea (modifier: Modifier = Modifier) {
             // チェックボックスが押されたら、toggleChecked()で該当データのチェック状態を反転させる
             onToggleCheck = { index -> toggleChecked(inventoryList, index) },
             // 削除ボタンが押されたら、該当データを一覧から取り除く
-            onDeleteItem = { index -> inventoryList.removeAt(index) }
+            onDeleteItem = { index -> inventoryList.removeAt(index) },
+            onItemClick = onItemClick
         )
 
         // フッターエリア:下部に配置
@@ -272,7 +306,8 @@ fun ListArea(
     modifier: Modifier,
     items: List<InventoryItem>,
     onToggleCheck: (Int) -> Unit,
-    onDeleteItem: (Int) -> Unit
+    onDeleteItem: (Int) -> Unit,
+    onItemClick: () -> Unit
 ) {
     //
     Box(
@@ -301,7 +336,8 @@ fun ListArea(
                         item = item,
                         index = index, // 背景色の切り替えに使う行番号
                         onCheckedChange = { onToggleCheck(index) },
-                        onDeleteClick = { onDeleteItem(index) }
+                        onDeleteClick = { onDeleteItem(index) },
+                        onRowClick = onItemClick // タップされたら、そのままonItemClickを呼ぶ
                     )
                 }
             }
@@ -315,7 +351,8 @@ fun InventoryRow(
     item: InventoryItem,
     index: Int, // 背景色の判定に使う
     onCheckedChange: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onRowClick: () -> Unit
 ) {
     // 行背景色を決める
     val rowColor = if (item.isChecked) {
@@ -326,16 +363,13 @@ fun InventoryRow(
         Color.White
     }
 
-    // Toastを表示するために必要な「今の画面の情報」を取得しておく
-    val context = LocalContext.current
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(rowColor)
             // 行がタップされたら詳細画面に遷移
             .clickable {
-                Toast.makeText(context, R.string.message_row_tapped, Toast.LENGTH_SHORT).show()
+                onRowClick()
             }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -426,32 +460,10 @@ private fun toggleChecked(list: SnapshotStateList<InventoryItem>, index: Int) {
     list[index] = newItem
 }
 
-// 詳細画面
-@Composable
-fun DetailScreen(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // TODO:仮タイトル表示。ここに時刻・数量・コメントが今後並ぶ予定
-        Text("詳細画面")
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun InventoryScreenPreview() {
     InventoryManagementAppTheme {
-        InventoryEntryArea()
-    }
-}
-
-// 詳細画面側のプレビュー
-@Preview(showBackground = true)
-@Composable
-fun DetailScreenPreview() {
-    InventoryManagementAppTheme {
-        DetailScreen()
+        InventoryEntryArea(onItemClick = {})
     }
 }
