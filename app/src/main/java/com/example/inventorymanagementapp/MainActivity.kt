@@ -43,6 +43,9 @@ import kotlinx.coroutines.delay
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import android.net.Uri
 
 // 在庫データ
 data class InventoryItem(
@@ -85,14 +88,39 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         // "list"という住所には一覧画面を表示する
         composable("list") {
             InventoryEntryArea(
-                // 行がタップされたら、"detail"という住所へ移動する
-                onItemClick = { navController.navigate("detail") }
+                // タップされた行のデータを受け取り、詳細画面へ渡す
+                onItemClick = { item ->
+                    // コメントを安全に渡せるよう文字列を変換する
+                    val encodedComment = Uri.encode(item.comment)
+
+                    // 詳細画面へデータを渡して画面遷移する
+                    navController.navigate("detail/${item.time}/${item.quantity}/$encodedComment")
+                }
             )
         }
 
-        // "detail"という住所には詳細画面を表示する
-        composable("detail") {
-            DetailScreen()
+        // 詳細画面が受け取るデータ(時刻・数量・コメント)を定義する
+        composable(
+            route = "detail/{time}/{quantity}/{comment}",
+            arguments = listOf(
+                navArgument("time") { type = NavType.StringType },
+                navArgument("quantity") { type = NavType.IntType },
+                navArgument("comment") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            // 一覧画面から渡されたデータを取り出す
+            val time = backStackEntry.arguments?.getString("time") ?: ""
+            val quantity = backStackEntry.arguments?.getInt("quantity") ?: 0
+            val encodedComment = backStackEntry.arguments?.getString("comment") ?: ""
+
+            // エンコードしたコメントを元の文字列へ戻す
+            val comment = Uri.decode(encodedComment)
+
+            DetailScreen(
+                time = time,
+                quantity = quantity,
+                comment = comment
+            )
         }
     }
 }
@@ -102,7 +130,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
 @Composable
 fun InventoryEntryArea (
     modifier: Modifier = Modifier,
-    onItemClick: () -> Unit
+    onItemClick: (InventoryItem) -> Unit
 ) {
 
     val inventoryList = remember { mutableStateListOf<InventoryItem>() }
@@ -124,7 +152,7 @@ fun InventoryEntryArea (
                 .fillMaxWidth()
                 .weight(2.0f)
                 .padding(16.dp),
-            onAddItem = { newItem -> inventoryList.add(newItem) } // 追加ボタンが押されたら、その内容をリストへ追加する
+            onAddItem = { newItem -> inventoryList.add(newItem) } // 追加ボタンが押されたら、新しいデータを一覧へ追加する
         )
 
         // 在庫一覧エリア:中央に配置
@@ -307,7 +335,7 @@ fun ListArea(
     items: List<InventoryItem>,
     onToggleCheck: (Int) -> Unit,
     onDeleteItem: (Int) -> Unit,
-    onItemClick: () -> Unit
+    onItemClick: (InventoryItem) -> Unit
 ) {
     //
     Box(
@@ -329,15 +357,14 @@ fun ListArea(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // itemsIndexed: 中身を1件ずつ、その「何番目か(index)」と一緒に取り出す
-                // チェックボックスがどのデータのものかを親に伝えるためにindexが必要
+                // データを1件ずつ取り出し、行番号(index)も一緒に取得する
                 itemsIndexed(items) { index, item ->
                     InventoryRow(
                         item = item,
                         index = index, // 背景色の切り替えに使う行番号
                         onCheckedChange = { onToggleCheck(index) },
                         onDeleteClick = { onDeleteItem(index) },
-                        onRowClick = onItemClick // タップされたら、そのままonItemClickを呼ぶ
+                        onRowClick = { onItemClick(item) } // タップされた行のデータを親へ渡す
                     )
                 }
             }
