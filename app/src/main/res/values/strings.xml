@@ -25,4 +25,7 @@
     <string name="dialog_title_total">合計数量</string>
     <string name="format_total_quantity">%1$d個</string>
     <string name="button_close">閉じる</string>
+
+    <!-- 画像表示エリア -->
+    <string name="message_no_image">画像なし</string>
 </resources>
