@@ -1,5 +1,8 @@
 package com.example.inventorymanagementapp
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -10,9 +13,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,6 +39,20 @@ fun DetailScreen(
     comment: String, // 渡されたコメント
     imageUri: String? = null // 選択された画像の場所(URI)。初期値はnull(画像なし)
 ) {
+    // 選択中の画像URIを画面内部の状態として持つ
+    var selectedImageUri by remember { mutableStateOf(imageUri) }
+
+    // PickVisualMedia: 端末標準の画像選択画面(フォトピッカー)を呼び出す
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            // 選ばれた場合だけ状態を更新する(URIはString型に変換して保存)
+            selectedImageUri = uri.toString()
+        }
+        // uriがnull(何も選ばずキャンセルした)場合は何もしない
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -68,8 +90,23 @@ fun DetailScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-        // 画像表示エリア(今回は「画像なし」)
-        ImageArea(imageUri = imageUri)
+        // 画像表示エリア(選択中のURIを渡す。まだ何も選んでいなければnullのまま)
+        ImageArea(imageUri = selectedImageUri)
+
+        // 画像選択ボタン
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Button(onClick = {
+                // フォトピッカーを起動
+                pickImageLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }) {
+                Text(stringResource(R.string.button_select_image))
+            }
+        }
     }
 }
 
