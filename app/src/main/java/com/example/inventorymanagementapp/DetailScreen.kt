@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.example.inventorymanagementapp.ui.theme.InventoryManagementAppTheme
 
 // 詳細画面
@@ -129,8 +130,12 @@ fun ImageArea(
             // 画像が選ばれていない場合は「画像なし」と表示する
             Text(stringResource(R.string.message_no_image))
         } else {
-            // TODO: 実際の画像(Image composable)を表示する処理
-            Text(stringResource(R.string.message_no_image))
+            // 選択された画像を表示する
+            AsyncImage(
+                model = imageUri, // 表示したい画像の場所(URI)
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
