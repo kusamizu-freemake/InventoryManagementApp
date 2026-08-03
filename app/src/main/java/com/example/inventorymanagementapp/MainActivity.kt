@@ -52,7 +52,8 @@ data class InventoryItem(
     val time: String, // 時刻
     val quantity: Int, // 数量
     val comment: String, // コメント
-    val isChecked: Boolean = false // チェック状態
+    val isChecked: Boolean = false, // チェック状態
+    val imageUri: String? = null // 画像が保存されている場所(URI)。まだ選んでいない場合はnull
 )
 
 class MainActivity : ComponentActivity() {
@@ -78,6 +79,9 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     // navController: 今どの画面にいるか、次にどこへ移動するかを管理する案内係
     val navController = rememberNavController()
 
+    // 在庫一覧のデータをここで持つ
+    val inventoryList = remember { mutableStateListOf<InventoryItem>() }
+
     // NavHost: 住所(文字列)と画面(Composable)を紐づけて登録する箱
     // startDestination: アプリを開いたときに最初に表示する住所
     NavHost(
@@ -88,38 +92,64 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         // "list"という住所には一覧画面を表示する
         composable("list") {
             InventoryEntryArea(
-                // タップされた行のデータを受け取り、詳細画面へ渡す
-                onItemClick = { item ->
+                inventoryList = inventoryList, // 一覧データを渡す
+                // タップされた行の「index(何番目か)」と「データ」を受け取り、詳細画面へ渡す
+                onItemClick = { index, item ->
                     // コメントを安全に渡せるよう文字列を変換する
                     val encodedComment = Uri.encode(item.comment)
 
+                    // 画像のURIも同じように安全な文字列に変換する
+                    val encodedImageUri = Uri.encode(item.imageUri ?: "")
+
                     // 詳細画面へデータを渡して画面遷移する
-                    navController.navigate("detail/${item.time}/${item.quantity}/$encodedComment")
+                    navController.navigate(
+                        "detail/$index/${item.time}/${item.quantity}/$encodedComment/$encodedImageUri"
+                    )
                 }
             )
         }
 
-        // 詳細画面が受け取るデータ(時刻・数量・コメント)を定義する
+        // 詳細画面が受け取るデータ(index・時刻・数量・コメント・画像URI)を定義する
         composable(
-            route = "detail/{time}/{quantity}/{comment}",
+            route = "detail/{index}/{time}/{quantity}/{comment}/{imageUri}",
             arguments = listOf(
+                navArgument("index") { type = NavType.IntType },
                 navArgument("time") { type = NavType.StringType },
                 navArgument("quantity") { type = NavType.IntType },
-                navArgument("comment") { type = NavType.StringType }
+                navArgument("comment") { type = NavType.StringType },
+                navArgument("imageUri") { type = NavType.StringType }
             )
         ) { backStackEntry ->
             // 一覧画面から渡されたデータを取り出す
+            val index = backStackEntry.arguments?.getInt("index") ?: 0
             val time = backStackEntry.arguments?.getString("time") ?: ""
             val quantity = backStackEntry.arguments?.getInt("quantity") ?: 0
             val encodedComment = backStackEntry.arguments?.getString("comment") ?: ""
+            val encodedImageUri = backStackEntry.arguments?.getString("imageUri") ?: ""
 
             // エンコードしたコメントを元の文字列へ戻す
             val comment = Uri.decode(encodedComment)
 
+            // エンコードした画像URIを元の文字列へ戻す
+            val decodedImageUri = Uri.decode(encodedImageUri)
+            val imageUri = if (decodedImageUri.isEmpty()) null else decodedImageUri
+
             DetailScreen(
                 time = time,
                 quantity = quantity,
-                comment = comment
+                comment = comment,
+                imageUri = imageUri,
+                // 詳細画面で新しい画像が選ばれたときに呼ばれる処理
+                onImageSelected = { newImageUri ->
+                    // 一覧の中から該当するデータ(index番目)を取り出す
+                    val targetItem = inventoryList[index]
+
+                    // 画像URIだけを更新したコピーを作る
+                    val updatedItem = targetItem.copy(imageUri = newImageUri)
+
+                    // 一覧のデータを新しいものへ入れ替える
+                    inventoryList[index] = updatedItem
+                }
             )
         }
     }
@@ -130,10 +160,9 @@ fun AppNavHost(modifier: Modifier = Modifier) {
 @Composable
 fun InventoryEntryArea (
     modifier: Modifier = Modifier,
-    onItemClick: (InventoryItem) -> Unit
+    inventoryList: SnapshotStateList<InventoryItem>,
+    onItemClick: (Int, InventoryItem) -> Unit
 ) {
-
-    val inventoryList = remember { mutableStateListOf<InventoryItem>() }
 
     // ダイアログを表示するかどうかのフラグ
     var showTotalDialog by remember { mutableStateOf(false) }
@@ -335,9 +364,8 @@ fun ListArea(
     items: List<InventoryItem>,
     onToggleCheck: (Int) -> Unit,
     onDeleteItem: (Int) -> Unit,
-    onItemClick: (InventoryItem) -> Unit
+    onItemClick: (Int, InventoryItem) -> Unit // indexとデータをまとめて親へ渡す
 ) {
-    //
     Box(
         modifier = modifier
             .background(Color.White) // debug用
@@ -364,7 +392,7 @@ fun ListArea(
                         index = index, // 背景色の切り替えに使う行番号
                         onCheckedChange = { onToggleCheck(index) },
                         onDeleteClick = { onDeleteItem(index) },
-                        onRowClick = { onItemClick(item) } // タップされた行のデータを親へ渡す
+                        onRowClick = { onItemClick(index, item) } // タップされた行のindexとデータを親へ渡す
                     )
                 }
             }
@@ -491,6 +519,9 @@ private fun toggleChecked(list: SnapshotStateList<InventoryItem>, index: Int) {
 @Composable
 fun InventoryScreenPreview() {
     InventoryManagementAppTheme {
-        InventoryEntryArea(onItemClick = {})
+        InventoryEntryArea(
+            inventoryList = remember { mutableStateListOf() }, // プレビュー用に空の一覧を用意
+            onItemClick = { _, _ -> }
+        )
     }
 }
