@@ -2,4 +2,7 @@
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false
+    id("com.google.devtools.ksp") version "2.3.11" apply false
 }
+
+extra["room_version"] = "2.8.4"  // Roomのバージョンをここで一元管理
