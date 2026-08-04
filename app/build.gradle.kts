@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp") // Room用
 }
 
 android {
@@ -48,6 +49,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("androidx.navigation:navigation-compose:2.9.0") // 画面遷移
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")// 画像読み込み
+    // Room（データベース）
+    implementation("androidx.room:room-runtime:${rootProject.extra["room_version"]}")
+    ksp("androidx.room:room-compiler:${rootProject.extra["room_version"]}") // Roomが自動生成するコード用
+    implementation("androidx.room:room-ktx:${rootProject.extra["room_version"]}") // コルーチン・Flow対応
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
