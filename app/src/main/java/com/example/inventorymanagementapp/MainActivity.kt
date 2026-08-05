@@ -1,5 +1,6 @@
 package com.example.inventorymanagementapp
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,48 +14,39 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Button
 import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.Checkbox
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import java.time.LocalTime
-import com.example.inventorymanagementapp.ui.theme.InventoryManagementAppTheme
-import java.time.format.DateTimeFormatter
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.delay
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import android.net.Uri
-
-// 在庫データ
-data class InventoryItem(
-    val time: String, // 時刻
-    val quantity: Int, // 数量
-    val comment: String, // コメント
-    val isChecked: Boolean = false, // チェック状態
-    val imageUri: String? = null // 画像が保存されている場所(URI)。まだ選んでいない場合はnull
-)
+import com.example.inventorymanagementapp.database.InventoryEntity
+import com.example.inventorymanagementapp.ui.theme.InventoryManagementAppTheme
+import kotlinx.coroutines.delay
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,8 +71,11 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     // navController: 今どの画面にいるか、次にどこへ移動するかを管理する案内係
     val navController = rememberNavController()
 
-    // 在庫一覧のデータをここで持つ
-    val inventoryList = remember { mutableStateListOf<InventoryItem>() }
+    val listViewModel: InventoryListViewModel = viewModel()
+
+    val inventoryList by listViewModel.inventoryList.collectAsState()
+    val showTotalDialog by listViewModel.showTotalDialog.collectAsState()
+    val totalQuantity by listViewModel.totalQuantity.collectAsState()
 
     // NavHost: 住所(文字列)と画面(Composable)を紐づけて登録する箱
     // startDestination: アプリを開いたときに最初に表示する住所
@@ -93,11 +88,18 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         composable("list") {
             InventoryEntryArea(
                 inventoryList = inventoryList, // 一覧データを渡す
+                showTotalDialog = showTotalDialog,
+                totalQuantity = totalQuantity,
+                onAddItem = listViewModel::addItem,
+                onToggleCheck = listViewModel::toggleChecked,
+                onDeleteItem = listViewModel::deleteItem,
+                onClickClear = listViewModel::clearAll,
+                onClickTotal = listViewModel::calculateTotal,
+                onDismissDialog = listViewModel::dismissTotalDialog,
                 // タップされた行の「index(何番目か)」と「データ」を受け取り、詳細画面へ渡す
                 onItemClick = { index, item ->
                     // コメントを安全に渡せるよう文字列を変換する
                     val encodedComment = Uri.encode(item.comment)
-
                     // 画像のURIも同じように安全な文字列に変換する
                     val encodedImageUri = Uri.encode(item.imageUri ?: "")
 
@@ -129,7 +131,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
 
             // エンコードしたコメントを元の文字列へ戻す
             val comment = Uri.decode(encodedComment)
-
             // エンコードした画像URIを元の文字列へ戻す
             val decodedImageUri = Uri.decode(encodedImageUri)
             val imageUri = if (decodedImageUri.isEmpty()) null else decodedImageUri
@@ -141,14 +142,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 imageUri = imageUri,
                 // 詳細画面で新しい画像が選ばれたときに呼ばれる処理
                 onImageSelected = { newImageUri ->
-                    // 一覧の中から該当するデータ(index番目)を取り出す
-                    val targetItem = inventoryList[index]
-
-                    // 画像URIだけを更新したコピーを作る
-                    val updatedItem = targetItem.copy(imageUri = newImageUri)
-
-                    // 一覧のデータを新しいものへ入れ替える
-                    inventoryList[index] = updatedItem
+                    listViewModel.updateImageUri(index, newImageUri)
                 }
             )
         }
@@ -158,17 +152,19 @@ fun AppNavHost(modifier: Modifier = Modifier) {
 // 画面作成
 // 在庫入力エリア（数量表示、変更ボタン、現在時刻表示、コメント入力、追加ボタン）
 @Composable
-fun InventoryEntryArea (
+fun InventoryEntryArea(
     modifier: Modifier = Modifier,
-    inventoryList: SnapshotStateList<InventoryItem>,
-    onItemClick: (Int, InventoryItem) -> Unit
+    inventoryList: List<InventoryEntity>,
+    showTotalDialog: Boolean,
+    totalQuantity: Int,
+    onAddItem: (InventoryEntity) -> Unit,
+    onToggleCheck: (Int) -> Unit,
+    onDeleteItem: (Int) -> Unit,
+    onClickClear: () -> Unit,
+    onClickTotal: () -> Unit,
+    onDismissDialog: () -> Unit,
+    onItemClick: (Int, InventoryEntity) -> Unit
 ) {
-
-    // ダイアログを表示するかどうかのフラグ
-    var showTotalDialog by remember { mutableStateOf(false) }
-    // 計算した合計数量を覚えておく変数
-    var totalQuantity by remember { mutableStateOf(0) }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -181,7 +177,7 @@ fun InventoryEntryArea (
                 .fillMaxWidth()
                 .weight(2.0f)
                 .padding(16.dp),
-            onAddItem = { newItem -> inventoryList.add(newItem) } // 追加ボタンが押されたら、新しいデータを一覧へ追加する
+            onAddItem = onAddItem // 追加ボタンが押されたら、
         )
 
         // 在庫一覧エリア:中央に配置
@@ -191,10 +187,10 @@ fun InventoryEntryArea (
                 .weight(1.5f)
                 .padding(16.dp),
             items = inventoryList,
-            // チェックボックスが押されたら、toggleChecked()で該当データのチェック状態を反転させる
-            onToggleCheck = { index -> toggleChecked(inventoryList, index) },
-            // 削除ボタンが押されたら、該当データを一覧から取り除く
-            onDeleteItem = { index -> inventoryList.removeAt(index) },
+            // チェックボックスが押されたら、ViewModelのtoggleChecked()を呼び出す
+            onToggleCheck = onToggleCheck,
+            // 削除ボタンが押されたら、ViewModelのdeleteItem()を呼び出す
+            onDeleteItem = onDeleteItem,
             onItemClick = onItemClick
         )
 
@@ -204,20 +200,9 @@ fun InventoryEntryArea (
                 .fillMaxWidth()
                 .weight(0.5f)
                 .padding(16.dp),
-            // クリアボタンが押されたときの処理
-            onClickClear = {
-                inventoryList.clear() // 一覧を空にする
-            },
-            // 合計数量ボタンが押されたときの処理
-            onClickTotal = {
-                // チェックされている行の数量を合計して、ダイアログで表示する処理
-                totalQuantity = inventoryList
-                    .filter { it.isChecked }
-                    .sumOf { it.quantity }
 
-                // ダイアログを表示状態にする
-                showTotalDialog = true
-            }
+            onClickClear = onClickClear, // クリアボタンが押されたときの処理
+            onClickTotal = onClickTotal // 合計数量ボタンが押されたときの処理
         )
     }
 
@@ -225,7 +210,7 @@ fun InventoryEntryArea (
     if (showTotalDialog) {
         TotalQuantityDialog(
             total = totalQuantity,
-            onDismiss = { showTotalDialog = false }
+            onDismiss = onDismissDialog
         )
     }
 }
@@ -235,7 +220,7 @@ fun InventoryEntryArea (
 @Composable
 fun InputArea(
     modifier: Modifier,
-    onAddItem: (InventoryItem) -> Unit // 追加ボタンが押されたことを親に伝えるための連絡係
+    onAddItem: (InventoryEntity) -> Unit // 追加ボタンが押されたことを親に伝えるための連絡係
 ) {
     // 数量の状態
     var quantity by remember { mutableStateOf(0) }
@@ -314,11 +299,12 @@ fun InputArea(
             horizontalArrangement = Arrangement.Center
         ) {
             Button(onClick = {
-                val newItem = InventoryItem(
+                val newItem = InventoryEntity(
                     time = getCurrentTimeText(), // 時刻取得
                     quantity = quantity,
                     comment = comment,
-                    isChecked = false
+                    isChecked = false,
+                    imageUri = null
                 )
                 // 作ったデータを親(InventoryEntryArea)へ渡して、一覧に追加してもらう
                 onAddItem(newItem)
@@ -361,10 +347,10 @@ fun CurrentTimer() {
 @Composable
 fun ListArea(
     modifier: Modifier,
-    items: List<InventoryItem>,
+    items: List<InventoryEntity>,
     onToggleCheck: (Int) -> Unit,
     onDeleteItem: (Int) -> Unit,
-    onItemClick: (Int, InventoryItem) -> Unit // indexとデータをまとめて親へ渡す
+    onItemClick: (Int, InventoryEntity) -> Unit // indexとデータをまとめて親へ渡す
 ) {
     Box(
         modifier = modifier
@@ -403,7 +389,7 @@ fun ListArea(
 // 一覧の1行分のデザイン
 @Composable
 fun InventoryRow(
-    item: InventoryItem,
+    item: InventoryEntity,
     index: Int, // 背景色の判定に使う
     onCheckedChange: () -> Unit,
     onDeleteClick: () -> Unit,
@@ -454,7 +440,6 @@ fun FooterArea(
     onClickClear: () -> Unit,
     onClickTotal: () -> Unit
 ) {
-
     Row(
         modifier = modifier
             .background(Color.Yellow) // debug用
@@ -481,7 +466,7 @@ fun TotalQuantityDialog(
     onDismiss: () -> Unit // 閉じるときに呼ばれる処理
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss, // ダイアログの外側をタップした時などに閉じる
+        onDismissRequest = onDismiss,  // ダイアログの外側をタップした時などに閉じる
         confirmButton = {
             Button(onClick = onDismiss) {
                 Text(stringResource(R.string.button_close))
@@ -503,24 +488,20 @@ private fun getCurrentTimeText(): String {
     return now.format(formater)
 }
 
-// 一覧の中の、指定した位置(index)のデータだけチェック状態を反転させる関数
-private fun toggleChecked(list: SnapshotStateList<InventoryItem>, index: Int) {
-    // 対象のデータを取り出す
-    val item = list[index]
-
-    // チェック状態を反転させたコピーを作る
-    val newItem = item.copy(isChecked = !item.isChecked)
-
-    // 一覧に入れ替える
-    list[index] = newItem
-}
-
 @Preview(showBackground = true)
 @Composable
 fun InventoryScreenPreview() {
     InventoryManagementAppTheme {
         InventoryEntryArea(
-            inventoryList = remember { mutableStateListOf() }, // プレビュー用に空の一覧を用意
+            inventoryList = emptyList(),
+            showTotalDialog = false,
+            totalQuantity = 0,
+            onAddItem = {},
+            onToggleCheck = {},
+            onDeleteItem = {},
+            onClickClear = {},
+            onClickTotal = {},
+            onDismissDialog = {},
             onItemClick = { _, _ -> }
         )
     }
