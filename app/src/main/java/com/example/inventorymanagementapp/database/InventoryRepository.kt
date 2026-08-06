@@ -1,13 +1,12 @@
 package com.example.inventorymanagementapp.database
 
-import kotlinx.coroutines.flow.Flow
-
-// データベースに対して「何ができるか」だけを定義
+// データベースに対して「何ができるか」だけを定義する
 // 実際の処理はOfflineInventoryRepositoryが行う
 interface InventoryRepository {
 
-    // TODO:全件取得（フェーズ3 ⑥で実装予定）
-    fun getAllItemsStream(): Flow<List<InventoryEntity>>
+    suspend fun getAllItems(): List<InventoryEntity>
+
+    suspend fun getItem(id: Int): InventoryEntity?
 
     suspend fun insertItem(item: InventoryEntity)
 
