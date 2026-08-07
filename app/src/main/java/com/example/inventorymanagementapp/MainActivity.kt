@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -42,12 +40,7 @@ class MainActivity : ComponentActivity() {
 fun AppNavHost(modifier: Modifier = Modifier) {
     // navController: 今どの画面にいるか、次にどこへ移動するかを管理する案内係
     val navController = rememberNavController()
-
     val listViewModel: InventoryListViewModel = viewModel()
-
-    val inventoryList by listViewModel.inventoryList.collectAsState()
-    val showTotalDialog by listViewModel.showTotalDialog.collectAsState()
-    val totalQuantity by listViewModel.totalQuantity.collectAsState()
 
     // NavHost: 住所(文字列)と画面(Composable)を紐づけて登録する箱
     // startDestination: アプリを開いたときに最初に表示する住所
@@ -58,16 +51,8 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     ) {
         // "list"という住所には一覧画面を表示する
         composable("list") {
-            InventoryEntryArea(
-                inventoryList = inventoryList, // 一覧データを渡す
-                showTotalDialog = showTotalDialog,
-                totalQuantity = totalQuantity,
-                onAddItem = listViewModel::addItem,
-                onToggleCheck = listViewModel::toggleChecked,
-                onDeleteItem = listViewModel::deleteItem,
-                onClickClear = listViewModel::clearAll,
-                onClickTotal = listViewModel::calculateTotal,
-                onDismissDialog = listViewModel::dismissTotalDialog,
+            InventoryListScreen(
+                viewModel = listViewModel,
                 // タップされた行の「index(何番目か)」と「データ」を受け取り、詳細画面へ渡す
                 onItemClick = { index, item ->
                     // コメントを安全に渡せるよう文字列を変換する

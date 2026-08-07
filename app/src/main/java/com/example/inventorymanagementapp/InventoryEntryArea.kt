@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,10 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.inventorymanagementapp.database.InventoryEntity
-import com.example.inventorymanagementapp.ui.theme.InventoryManagementAppTheme
 import kotlinx.coroutines.delay
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -38,19 +38,16 @@ import java.time.format.DateTimeFormatter
 // 一覧画面
 // 在庫入力エリア（数量表示、変更ボタン、現在時刻表示、コメント入力、追加ボタン）
 @Composable
-fun InventoryEntryArea(
+fun InventoryListScreen(
     modifier: Modifier = Modifier,
-    inventoryList: List<InventoryEntity>,
-    showTotalDialog: Boolean,
-    totalQuantity: Int,
-    onAddItem: (InventoryEntity) -> Unit,
-    onToggleCheck: (Int) -> Unit,
-    onDeleteItem: (Int) -> Unit,
-    onClickClear: () -> Unit,
-    onClickTotal: () -> Unit,
-    onDismissDialog: () -> Unit,
+    viewModel: InventoryListViewModel = viewModel(), // ViewModelを受け取る
     onItemClick: (Int, InventoryEntity) -> Unit
 ) {
+    // ViewModelが持つ状態を、このComposableの中だけで読める形に変換する
+    val inventoryList by viewModel.inventoryList.collectAsState()
+    val showTotalDialog by viewModel.showTotalDialog.collectAsState()
+    val totalQuantity by viewModel.totalQuantity.collectAsState()
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -63,7 +60,7 @@ fun InventoryEntryArea(
                 .fillMaxWidth()
                 .weight(2.0f)
                 .padding(16.dp),
-            onAddItem = onAddItem // 追加ボタンが押されたら、
+            onAddItem = viewModel::addItem // 追加ボタンが押されたら、
         )
 
         // 在庫一覧エリア:中央に配置
@@ -73,10 +70,10 @@ fun InventoryEntryArea(
                 .weight(1.5f)
                 .padding(16.dp),
             items = inventoryList,
-            // チェックボックスが押されたら、ViewModelのtoggleChecked()を呼び出す
-            onToggleCheck = onToggleCheck,
-            // 削除ボタンが押されたら、ViewModelのdeleteItem()を呼び出す
-            onDeleteItem = onDeleteItem,
+            // チェックボックスが押されたら、
+            onToggleCheck = viewModel::toggleChecked,
+            // 削除ボタンが押されたら、
+            onDeleteItem = viewModel::deleteItem,
             onItemClick = onItemClick
         )
 
@@ -86,8 +83,8 @@ fun InventoryEntryArea(
                 .fillMaxWidth()
                 .weight(0.5f)
                 .padding(16.dp),
-            onClickClear = onClickClear, // クリアボタンが押されたときの処理
-            onClickTotal = onClickTotal // 合計数量ボタンが押されたときの処理
+            onClickClear = viewModel::clearAll, // クリアボタンが押されたときの処理
+            onClickTotal = viewModel::calculateTotal // 合計数量ボタンが押されたときの処理
         )
     }
 
@@ -95,7 +92,7 @@ fun InventoryEntryArea(
     if (showTotalDialog) {
         TotalQuantityDialog(
             total = totalQuantity,
-            onDismiss = onDismissDialog
+            onDismiss = viewModel::dismissTotalDialog
         )
     }
 }
@@ -191,7 +188,7 @@ fun InputArea(
                     isChecked = false,
                     imageUri = null
                 )
-                // 作ったデータを親(InventoryEntryArea)へ渡して、一覧に追加してもらう
+                // 作ったデータを親(InventoryListScreen)へ渡して、一覧に追加してもらう
                 onAddItem(newItem)
 
                 // 入力後の初期化
@@ -372,21 +369,21 @@ private fun getCurrentTimeText(): String {
     return now.format(formater)
 }
 
-@Preview(showBackground = true)
-@Composable
-fun InventoryEntryAreaPreview() {
-    InventoryManagementAppTheme {
-        InventoryEntryArea(
-            inventoryList = emptyList(),
-            showTotalDialog = false,
-            totalQuantity = 0,
-            onAddItem = {},
-            onToggleCheck = {},
-            onDeleteItem = {},
-            onClickClear = {},
-            onClickTotal = {},
-            onDismissDialog = {},
-            onItemClick = { _, _ -> }
-        )
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun InventoryEntryAreaPreview() {
+//    InventoryManagementAppTheme {
+//        InventoryEntryArea(
+//            inventoryList = emptyList(),
+//            showTotalDialog = false,
+//            totalQuantity = 0,
+//            onAddItem = {},
+//            onToggleCheck = {},
+//            onDeleteItem = {},
+//            onClickClear = {},
+//            onClickTotal = {},
+//            onDismissDialog = {},
+//            onItemClick = { _, _ -> }
+//        )
+//    }
+//}
