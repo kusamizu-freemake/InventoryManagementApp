@@ -1,5 +1,6 @@
 package com.example.inventorymanagementapp
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,9 @@ fun DetailScreen(
     imageUri: String? = null, // 選択された画像の場所(URI)。初期値はnull(画像なし)
     onImageSelected: (String) -> Unit = {}
 ) {
+    // takePersistableUriPermissionを呼ぶために必要
+    val context = LocalContext.current
+
     // 選択中の画像URIを画面内部の状態として持つ
     var selectedImageUri by remember { mutableStateOf(imageUri) }
 
@@ -49,13 +54,15 @@ fun DetailScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
+            // 選ばれたURIへの読み取り権限を「永続的」に
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
             // 選ばれた場合だけ処理する(URIはString型に変換して扱う)
             val uriText = uri.toString()
-
             // この画面の表示を更新するための状態
             selectedImageUri = uriText
-
-
             onImageSelected(uriText)
         }
     }
