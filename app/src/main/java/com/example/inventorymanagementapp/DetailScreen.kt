@@ -14,8 +14,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,13 +45,17 @@ fun DetailScreen(
     quantity: Int, // 渡された数量
     comment: String, // 渡されたコメント
     imageUri: String? = null, // 選択された画像の場所(URI)。初期値はnull(画像なし)
-    onImageSelected: (String) -> Unit = {}
+    onImageSelected: (String) -> Unit = {},
+    onBackClick: () -> Unit = {} // 戻るボタンが押されたときの処理
 ) {
     // takePersistableUriPermissionを呼ぶために必要
     val context = LocalContext.current
 
     // 選択中の画像URIを画面内部の状態として持つ
     var selectedImageUri by remember { mutableStateOf(imageUri) }
+
+    // 一度押したら true にして、連打を防ぐための変数
+    var isBackButtonClicked by remember { mutableStateOf(false) }
 
     // PickVisualMedia: 端末標準の画像選択画面(フォトピッカー)を呼び出す
     val pickImageLauncher = rememberLauncherForActivityResult(
@@ -72,7 +80,27 @@ fun DetailScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("詳細画面")
+        // 戻るボタン
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = {
+                    // 二重タップ対策
+                    if (!isBackButtonClicked) {
+                        isBackButtonClicked = true
+                        onBackClick()
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "戻る"
+                )
+            }
+            Text("詳細画面")
+        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 

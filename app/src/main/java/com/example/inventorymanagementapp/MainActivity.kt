@@ -100,6 +100,10 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 // 詳細画面で新しい画像が選ばれたときに呼ばれる処理
                 onImageSelected = { newImageUri ->
                     listViewModel.updateImageUri(index, newImageUri)
+                },
+                // 戻るボタンが押されたときの処理
+                onBackClick = {
+                    navController.popBackStack()
                 }
             )
         }

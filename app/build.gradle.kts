@@ -49,6 +49,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("androidx.navigation:navigation-compose:2.9.0") // 画面遷移
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")// 画像読み込み
+    implementation("androidx.compose.material:material-icons-extended") // アイコン追加（矢印など拡張アイコン用）
     // Room（データベース）
     implementation("androidx.room:room-runtime:${rootProject.extra["room_version"]}")
     ksp("androidx.room:room-compiler:${rootProject.extra["room_version"]}") // Roomが自動生成するコード用

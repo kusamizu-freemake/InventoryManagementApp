@@ -368,22 +368,3 @@ private fun getCurrentTimeText(): String {
     val formater = DateTimeFormatter.ofPattern("HH:mm:ss")
     return now.format(formater)
 }
-
-//@Preview(showBackground = true)
-//@Composable
-//fun InventoryEntryAreaPreview() {
-//    InventoryManagementAppTheme {
-//        InventoryEntryArea(
-//            inventoryList = emptyList(),
-//            showTotalDialog = false,
-//            totalQuantity = 0,
-//            onAddItem = {},
-//            onToggleCheck = {},
-//            onDeleteItem = {},
-//            onClickClear = {},
-//            onClickTotal = {},
-//            onDismissDialog = {},
-//            onItemClick = { _, _ -> }
-//        )
-//    }
-//}
