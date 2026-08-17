@@ -54,6 +54,9 @@ fun DetailScreen(
     // 選択中の画像URIを画面内部の状態として持つ
     var selectedImageUri by remember { mutableStateOf(imageUri) }
 
+    // 一度押したら true にして、連打を防ぐための変数
+    var isBackButtonClicked by remember { mutableStateOf(false) }
+
     // PickVisualMedia: 端末標準の画像選択画面(フォトピッカー)を呼び出す
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -82,7 +85,15 @@ fun DetailScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBackClick) {
+            IconButton(
+                onClick = {
+                    // 二重タップ対策
+                    if (!isBackButtonClicked) {
+                        isBackButtonClicked = true
+                        onBackClick()
+                    }
+                }
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "戻る"
