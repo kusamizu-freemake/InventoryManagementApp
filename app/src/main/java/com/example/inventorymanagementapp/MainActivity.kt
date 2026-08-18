@@ -103,7 +103,12 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 },
                 // 戻るボタンが押されたときの処理
                 onBackClick = {
-                    navController.popBackStack()
+                    // バックスタックに戻り先が存在するかを確認
+                    // navController.previousBackStackEntry が null でなければ戻る
+                    // null なら何もしない
+                    if (navController.previousBackStackEntry != null) {
+                        navController.popBackStack()
+                    }
                 }
             )
         }
