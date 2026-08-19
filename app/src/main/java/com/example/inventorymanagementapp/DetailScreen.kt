@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.inventorymanagementapp.ui.theme.InventoryManagementAppTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // 詳細画面
 // 一覧画面でタップされた行のデータ(時刻・数量・コメント・画像URI)を受け取って表示する画面
@@ -54,8 +57,30 @@ fun DetailScreen(
     // 選択中の画像URIを画面内部の状態として持つ
     var selectedImageUri by remember { mutableStateOf(imageUri) }
 
-    // 一度押したら true にして、連打を防ぐための変数
-    var isBackButtonClicked by remember { mutableStateOf(false) }
+    // ボタン連打・同時押し防止用のフラグ
+    var isEventLock by remember { mutableStateOf(false) }
+
+    // 裏側の処理を実行するためのスコープ
+    val coroutineScope = rememberCoroutineScope()
+
+    // ボタン連打・同時押しを防ぐための判定関数
+    fun isEventLock(): Boolean {
+        // すでにロック中なら、trueを返して終了
+        if (isEventLock) {
+            return true
+        }
+
+        // ロックされていない場合は、ロック状態にする
+        isEventLock = true
+
+        // 0.5秒後にロック解除する処理を裏側で実行する
+        coroutineScope.launch {
+            delay(500) // 0.5秒
+            isEventLock = false // ロックを解除
+        }
+
+        return false // ロックしていなかったので false を返す
+    }
 
     // PickVisualMedia: 端末標準の画像選択画面(フォトピッカー)を呼び出す
     val pickImageLauncher = rememberLauncherForActivityResult(
@@ -87,11 +112,8 @@ fun DetailScreen(
         ) {
             IconButton(
                 onClick = {
-                    // 二重タップ対策
-                    if (!isBackButtonClicked) {
-                        isBackButtonClicked = true
-                        onBackClick()
-                    }
+                    if (isEventLock()) return@IconButton // 連打・同時押し防止
+                    onBackClick()
                 }
             ) {
                 Icon(
@@ -141,6 +163,7 @@ fun DetailScreen(
             horizontalArrangement = Arrangement.Center
         ) {
             Button(onClick = {
+                if (isEventLock()) return@Button // 連打・同時押し防止
                 // フォトピッカーを起動
                 pickImageLauncher.launch(
                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
